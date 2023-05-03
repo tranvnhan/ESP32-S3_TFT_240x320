@@ -68,8 +68,8 @@ void setup(void) {
   static lv_disp_drv_t disp_drv;
   lv_disp_drv_init( &disp_drv );
   /*Change the following line to your display resolution*/
-  disp_drv.hor_res = TFT_WIDTH;
-  disp_drv.ver_res = TFT_HEIGHT;
+  disp_drv.hor_res = TFT_HEIGHT;  // flipped since we use horizontal view
+  disp_drv.ver_res = TFT_WIDTH;
   disp_drv.flush_cb = my_disp_flush;
   disp_drv.draw_buf = &draw_buf;
   lv_disp_drv_register( &disp_drv );
