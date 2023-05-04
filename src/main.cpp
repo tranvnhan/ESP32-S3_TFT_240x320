@@ -24,6 +24,7 @@ void GUI(void);
 static void textarea_event_handler(lv_event_t * e);
 static void radiobutton_create(lv_obj_t * parent, const char * txt, uint32_t i);
 static void radio_event_handler(lv_event_t * e);
+void another_GUI();
 
 void setup(void) {
 
@@ -62,11 +63,27 @@ void setup(void) {
   // display_random_stuffs();
 
   /*GUI*/
-  GUI();
+
 }
 
+bool flag = false;
+
 void loop() {
+  static lv_obj_t * another_scr = lv_obj_create(NULL);
+  static lv_obj_t * input_scr = lv_obj_create(NULL);
+
+  if (flag) {
+    lv_scr_load(another_scr);
+    another_GUI();
+  }
+  else {
+    lv_scr_load(input_scr);
+    GUI();
+  }
+
+  flag = !flag;
   lv_timer_handler(); /* let the GUI do its work */
+  delay(2000);
 }
 
 #if LV_USE_LOG != 0
@@ -288,4 +305,14 @@ static void radio_event_handler(lv_event_t * e) {
   // *active_id = lv_obj_get_index(act_cb);
 
   // LV_LOG_USER("Selected radio buttons: %d, %d", (int)active_index_1, (int)active_index_2);
+}
+
+void another_GUI() {
+  String LVGL_Arduino = "Hello Arduino! ";
+  LVGL_Arduino += String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
+
+  /* Create simple label */
+  lv_obj_t *label = lv_label_create( lv_scr_act() );
+  lv_label_set_text( label, LVGL_Arduino.c_str() );
+  lv_obj_align( label, LV_ALIGN_TOP_LEFT, 0, 0 );
 }
