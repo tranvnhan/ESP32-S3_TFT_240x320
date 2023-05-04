@@ -11,17 +11,12 @@ static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[ TFT_WIDTH * TFT_HEIGHT / 10 ];
 
 // Function prototypes
+void display_random_stuffs();
 void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p );
 void lv_example_get_started_2(void);
 void lv_example_get_started_4(void);
 
 void setup(void) {
-  Serial.begin( 115200 );
-
-  String LVGL_Arduino = "Hello Arduino! ";
-  LVGL_Arduino += String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
-  Serial.println( LVGL_Arduino );
-  Serial.println( "I am LVGL_Arduino" );
 
   // LVGL setup
   lv_init();
@@ -33,8 +28,7 @@ void setup(void) {
   // TFT display setup
   tft.init();
   tft.setRotation(1);  // view display horizontally
-
-  tft.fillScreen(TFT_BLACK);
+  // tft.fillScreen(TFT_BLACK);
   // tft.setCursor(0, 0, 4);
   // tft.setTextColor(TFT_WHITE);
   // tft.println(" White text");
@@ -55,16 +49,8 @@ void setup(void) {
   disp_drv.draw_buf = &draw_buf;
   lv_disp_drv_register( &disp_drv );
 
-  /* Create simple label */
-  lv_obj_t *label = lv_label_create( lv_scr_act() );
-  lv_label_set_text( label, LVGL_Arduino.c_str() );
-  lv_obj_align( label, LV_ALIGN_TOP_LEFT, 0, 0 );
-
-  /* Button with label */
-  lv_example_get_started_2();
-
-  /* Slider with label */
-  lv_example_get_started_4();
+  /*Display random stuffs*/
+  // display_random_stuffs();
 }
 
 void loop() {
@@ -79,6 +65,22 @@ void my_print( lv_log_level_t level, const char * buf )
     Serial.flush();
 }
 #endif
+
+void display_random_stuffs() {
+  String LVGL_Arduino = "Hello Arduino! ";
+  LVGL_Arduino += String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
+
+  /* Create simple label */
+  lv_obj_t *label = lv_label_create( lv_scr_act() );
+  lv_label_set_text( label, LVGL_Arduino.c_str() );
+  lv_obj_align( label, LV_ALIGN_TOP_LEFT, 0, 0 );
+
+  /* Button with label */
+  lv_example_get_started_2();
+
+  /* Slider with label */
+  lv_example_get_started_4();
+}
 
 /* Display flushing */
 void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p )
