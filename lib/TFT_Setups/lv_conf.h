@@ -752,6 +752,9 @@
     #define LV_DEMO_MUSIC_AUTO_PLAY 0
 #endif
 
+/*To be used for keypad*/
+#define LV_USE_GROUP 1
+
 /*--END OF LV_CONF_H--*/
 
 #endif /*LV_CONF_H*/

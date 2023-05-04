@@ -3,12 +3,20 @@
 #include <Free_Fonts.h>
 #include <lvgl.h>
 #include <lv_conf.h>
+#include <Keypad.h>
+
+#define KEYPAD_ROW_NUM     5
+#define KEYPAD_COLUMN_NUM  4
 
 TFT_eSPI tft = TFT_eSPI();  // Invoke custom library
 
 // LVGL variables
 static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[ TFT_WIDTH * TFT_HEIGHT / 10 ];
+
+static lv_obj_t * input_scr;
+static lv_obj_t * another_scr;
+static lv_group_t * input_grp;
 
 static lv_style_t style_radio;
 static lv_style_t style_radio_chk;
@@ -22,11 +30,43 @@ void lv_example_get_started_2(void);
 void lv_example_get_started_4(void);
 void GUI(void);
 static void textarea_event_handler(lv_event_t * e);
+static void textarea_event_focused(lv_event_t * e);
 static void radiobutton_create(lv_obj_t * parent, const char * txt, uint32_t i);
 static void radio_event_handler(lv_event_t * e);
 void another_GUI();
+void IRAM_ATTR TFT_DisplayISR();
+void keypad_read(lv_indev_drv_t * drv, lv_indev_data_t*data);
+
+// set up for keypad
+// U: Up, D: Down, L: Left, R: Right, C: Cancel, E: Enter
+char keys[KEYPAD_ROW_NUM][KEYPAD_COLUMN_NUM] = {
+  {'F', 'G', '#', '*'},
+  {'1', '2', '3', 'U'},
+  {'4', '5', '6', 'D'},
+  {'7', '8', '9', 'C'},
+  {'L', '0', 'R', 'E'}
+};
+
+byte pin_rows[KEYPAD_ROW_NUM] = {8, 18, 17, 16, 15};  // pin for R1, R2, R3, R4, R5
+byte pin_column[KEYPAD_COLUMN_NUM] = {4, 5, 6, 7};    // pin for C1, C2, C3, C4
+
+Keypad keypad = Keypad( makeKeymap(keys), pin_rows, pin_column, KEYPAD_ROW_NUM, KEYPAD_COLUMN_NUM );
+// For debugging only:
+volatile bool print = false;
+volatile char testing;
+
+// create pointer for timer
+hw_timer_t *Timer3_cfg = NULL; // create a pointer for timer3
 
 void setup(void) {
+  Serial.begin(115200);
+
+  // setup for timer3
+  // Timer3_cfg = timerBegin(3, 4000, true); // Prescaler = 40000
+  // timerAttachInterrupt(Timer3_cfg, &TFT_DisplayISR,
+  //                      true);              // call the function TFT_DisplayISR()
+  // timerAlarmWrite(Timer3_cfg, 1000, true); // Time = 4000*1000/80,000,000 = 50ms
+  // timerAlarmEnable(Timer3_cfg);            // start the interrupt
 
   // LVGL setup
   lv_init();
@@ -59,31 +99,43 @@ void setup(void) {
   disp_drv.draw_buf = &draw_buf;
   lv_disp_drv_register( &disp_drv );
 
-  /*Display random stuffs*/
-  // display_random_stuffs();
+  /*Init LVGL screens*/
+  input_scr = lv_obj_create(NULL);
+  another_scr = lv_obj_create(NULL);
 
-  /*GUI*/
+  /*Init LVGL groups*/
+  // input_grp = lv_group_create();
 
+  /*Initialize LVGL input devices, i.e. keypad*/
+  // lv_indev_drv_t keypad_drv;
+  // lv_indev_drv_init(&keypad_drv);
+  // keypad_drv.type = LV_INDEV_TYPE_KEYPAD;
+  // keypad_drv.read_cb = keypad_read;
+  /*Register the driver in LVGL and save the created input device object*/
+  // lv_indev_t * keypad_indev = lv_indev_drv_register(&keypad_drv);  // keep resetting here
+  // lv_indev_set_group(keypad_indev, input_grp);
+
+  // Display the input screen
+  lv_scr_load(input_scr);
+  GUI();
 }
 
 bool flag = false;
 
 void loop() {
-  static lv_obj_t * another_scr = lv_obj_create(NULL);
-  static lv_obj_t * input_scr = lv_obj_create(NULL);
+  // static lv_obj_t * another_scr = lv_obj_create(NULL);
+  // static lv_obj_t * input_scr = lv_obj_create(NULL);
 
-  if (flag) {
-    lv_scr_load(another_scr);
-    another_GUI();
-  }
-  else {
-    lv_scr_load(input_scr);
-    GUI();
-  }
+  // if (flag) {
+  //   lv_scr_load(another_scr);
+  //   another_GUI();
+  // }
+  // else {
+  //   lv_scr_load(input_scr);
+  //   GUI();
+  // }
 
-  flag = !flag;
   lv_timer_handler(); /* let the GUI do its work */
-  delay(2000);
 }
 
 #if LV_USE_LOG != 0
@@ -164,8 +216,10 @@ void GUI(void) {
   lv_obj_align(VTBI_ta, LV_ALIGN_TOP_LEFT, 5, 25);
   lv_obj_set_width(VTBI_ta, 80);
   // lv_obj_add_event_cb(VTBI_ta, textarea_event_handler, LV_EVENT_READY, VTBI_ta);
+  lv_obj_add_event_cb(VTBI_ta, textarea_event_focused, LV_EVENT_FOCUSED, VTBI_ta);
   lv_textarea_set_placeholder_text(VTBI_ta, "Pls input");
   lv_obj_add_state(VTBI_ta, LV_STATE_FOCUSED); /*To be sure the cursor is visible*/
+  // lv_group_add_obj(input_grp, VTBI_ta);
 
   /*Labels for `VTBI_ta`*/
   lv_obj_t * VTBI_label = lv_label_create(lv_scr_act());
@@ -273,6 +327,10 @@ static void textarea_event_handler(lv_event_t * e) {
   LV_LOG_USER("Enter was pressed. The current text is: %s", lv_textarea_get_text(ta));
 }
 
+static void textarea_event_focused(lv_event_t * e) {
+  Serial.println("jfdksjfks");
+}
+
 static void radiobutton_create(lv_obj_t * parent, const char * txt, uint32_t i) {
   lv_obj_t * obj = lv_checkbox_create(parent);
   lv_checkbox_set_text(obj, txt);
@@ -315,4 +373,31 @@ void another_GUI() {
   lv_obj_t *label = lv_label_create( lv_scr_act() );
   lv_label_set_text( label, LVGL_Arduino.c_str() );
   lv_obj_align( label, LV_ALIGN_TOP_LEFT, 0, 0 );
+}
+
+// timer3 inerrupt, for I2C OLED display
+void IRAM_ATTR TFT_DisplayISR(){
+  // char key = keypad.getKey();
+
+  // if (key == 'E') {
+  //   lv_scr_load(input_scr);
+  //   GUI();
+  // }
+  // else if (key == 'C') {
+  //   lv_scr_load(another_scr);
+  //   another_GUI();
+  // }
+
+  // lv_timer_handler(); /* let the GUI do its work */
+}
+
+void keypad_read(lv_indev_drv_t * drv, lv_indev_data_t*data){
+  char key = keypad.getKey();
+  data->key = (uint32_t)key;  // possible BUG due to unmatched types
+  // Serial.println(data->key);  // NOTE: cannot print?
+
+  if(key) data->state = LV_INDEV_STATE_PR;
+  else data->state = LV_INDEV_STATE_REL;
+
+  // return false; /*No buffering now so no more data read*/
 }
