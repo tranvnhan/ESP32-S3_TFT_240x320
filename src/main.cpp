@@ -1,6 +1,6 @@
 #include <SPI.h>
 #include <TFT_eSPI.h>
-#include <Free_Fonts.h>
+// #include <Free_Fonts.h>
 #include <lvgl.h>
 #include <lv_conf.h>
 #include <Keypad.h>
@@ -24,10 +24,7 @@ static lv_style_t style_radio_chk;
 static uint32_t active_radiobtn_id = 0;
 
 /*Function prototypes*/
-void display_random_stuffs();
 void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p );
-void lv_example_get_started_2(void);
-void lv_example_get_started_4(void);
 void GUI(void);
 static void textarea_event_handler(lv_event_t * event);
 static void radiobutton_create(lv_obj_t * parent, const char * txt, uint32_t i);
@@ -116,8 +113,6 @@ void loop() {
   //   lv_scr_load(input_scr);
   //   GUI();
   // }
-
-  // lv_timer_handler(); /* let the GUI do its work */
 }
 
 #if LV_USE_LOG != 0
@@ -128,22 +123,6 @@ void my_print( lv_log_level_t level, const char * buf )
     Serial.flush();
 }
 #endif
-
-void display_random_stuffs() {
-  String LVGL_Arduino = "Hello Arduino! ";
-  LVGL_Arduino += String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
-
-  /* Create simple label */
-  lv_obj_t *label = lv_label_create( lv_scr_act() );
-  lv_label_set_text( label, LVGL_Arduino.c_str() );
-  lv_obj_align( label, LV_ALIGN_TOP_LEFT, 0, 0 );
-
-  /* Button with label */
-  lv_example_get_started_2();
-
-  /* Slider with label */
-  lv_example_get_started_4();
-}
 
 /* Display flushing */
 void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p ) {
@@ -156,36 +135,6 @@ void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *colo
     tft.endWrite();
 
     lv_disp_flush_ready( disp );
-}
-
-/**
- * Create a button with a label and react on click event.
- */
-void lv_example_get_started_2(void) {
-    lv_obj_t * btn = lv_btn_create(lv_scr_act());     /*Add a button the current screen*/
-    lv_obj_set_pos(btn, 10, 30);                            /*Set its position*/
-    lv_obj_set_size(btn, 120, 50);                          /*Set its size*/
-    // lv_obj_add_event(btn, btn_event_cb, LV_EVENT_ALL, NULL);           /*Assign a callback to the button*/
-
-    lv_obj_t * label = lv_label_create(btn);          /*Add a label to the button*/
-    lv_label_set_text(label, "Button");                     /*Set the labels text*/
-    lv_obj_center(label);
-}
-
-/**
- * Create a slider and write its value on a label.
- */
-void lv_example_get_started_4(void) {
-    /*Create a slider in the center of the display*/
-    lv_obj_t * slider = lv_slider_create(lv_scr_act());
-    lv_obj_set_width(slider, 200);                          /*Set the width*/
-    lv_obj_center(slider);                                  /*Align to the center of the parent (screen)*/
-    // lv_obj_add_event(slider, slider_event_cb, LV_EVENT_VALUE_CHANGED, NULL);     /*Assign an event function*/
-
-    /*Create a label above the slider*/
-    static lv_obj_t * label = lv_label_create(lv_scr_act());
-    lv_label_set_text(label, "0");
-    lv_obj_align_to(label, slider, LV_ALIGN_OUT_TOP_MID, 0, -15);    /*Align top of the slider*/
 }
 
 void GUI(void) {
@@ -350,7 +299,7 @@ void another_GUI() {
   lv_obj_align( label, LV_ALIGN_TOP_LEFT, 0, 0 );
 }
 
-// timer3 inerrupt, for I2C OLED display
+// timer3 inerrupt, for refreshing TFT display
 void IRAM_ATTR TFT_DisplayISR(){
   lv_timer_handler(); /* let the GUI do its work */
 }
