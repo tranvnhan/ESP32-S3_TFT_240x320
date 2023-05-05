@@ -1,53 +1,71 @@
 #include <SPI.h>
 #include <TFT_eSPI.h>
-#include <Free_Fonts.h>
+// #include <Free_Fonts.h>
 #include <lvgl.h>
 #include <lv_conf.h>
+#include <Keypad.h>
+
+#define KEYPAD_ROW_NUM     5
+#define KEYPAD_COLUMN_NUM  4
 
 TFT_eSPI tft = TFT_eSPI();  // Invoke custom library
 
-// LVGL variables
+/*LVGL variables*/
 static lv_disp_draw_buf_t draw_buf;
-static lv_color_t buf[ TFT_WIDTH * TFT_HEIGHT / 10 ];
+static lv_color_t color_buf[ TFT_WIDTH * TFT_HEIGHT / 10 ];
+
+static lv_obj_t * input_scr;
+static lv_obj_t * another_scr;
+static lv_indev_t * keypad_indev;
+static lv_group_t * input_grp;
 
 static lv_style_t style_radio;
 static lv_style_t style_radio_chk;
-static uint32_t active_index_1 = 0;
-static uint32_t active_index_2 = 0;
+static uint32_t active_radiobtn_id = 0;
 
-// Function prototypes
-void display_random_stuffs();
+/*Function prototypes*/
 void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p );
-void lv_example_get_started_2(void);
-void lv_example_get_started_4(void);
 void GUI(void);
-static void textarea_event_handler(lv_event_t * e);
+static void textarea_event_handler(lv_event_t * event);
 static void radiobutton_create(lv_obj_t * parent, const char * txt, uint32_t i);
-static void radio_event_handler(lv_event_t * e);
+static void radio_event_handler(lv_event_t * event);
 void another_GUI();
+void IRAM_ATTR TFT_DisplayISR();
+static void keypad_read(lv_indev_drv_t * drv, lv_indev_data_t * data);
+
+/*Keypad variables*/
+// U: Up, D: Down, L: Left, R: Right, C: Cancel, E: Enter
+char keys[KEYPAD_ROW_NUM][KEYPAD_COLUMN_NUM] = {
+  {'F', 'G', '#', '*'},
+  {'1', '2', '3', 'U'},
+  {'4', '5', '6', 'D'},
+  {'7', '8', '9', 'C'},
+  {'L', '0', 'R', 'E'}
+};
+byte pin_rows[KEYPAD_ROW_NUM] = {8, 18, 17, 16, 15};  // pin for R1, R2, R3, R4, R5
+byte pin_column[KEYPAD_COLUMN_NUM] = {4, 5, 6, 7};    // pin for C1, C2, C3, C4
+Keypad keypad = Keypad( makeKeymap(keys), pin_rows, pin_column, KEYPAD_ROW_NUM, KEYPAD_COLUMN_NUM );
+
+// create pointer for timer
+hw_timer_t *Timer3_cfg = NULL; // create a pointer for timer3
 
 void setup(void) {
+  Serial.begin(115200);
 
-  // LVGL setup
+  /*Setup for timer3*/
+  Timer3_cfg = timerBegin(3, 4000, true); // Prescaler = 40000
+  timerAttachInterrupt(Timer3_cfg, &TFT_DisplayISR,
+                       true);              // call the function TFT_DisplayISR()
+  timerAlarmWrite(Timer3_cfg, 1000, true); // Time = 4000*1000/80,000,000 = 50ms
+  timerAlarmEnable(Timer3_cfg);            // start the interrupt
+
+  /*LVGL setup*/
   lv_init();
-#if LV_USE_LOG != 0
-    lv_log_register_print_cb( my_print ); /* register print function for debugging */
-#endif
-  lv_disp_draw_buf_init( &draw_buf, buf, NULL, TFT_WIDTH * TFT_HEIGHT / 10 );
+  lv_disp_draw_buf_init( &draw_buf, color_buf, NULL, TFT_WIDTH * TFT_HEIGHT / 10 );
 
-  // TFT display setup
+  /*TFT display setup*/
   tft.init();
   tft.setRotation(1);  // view display horizontally
-  // tft.fillScreen(TFT_BLACK);
-  // tft.setCursor(0, 0, 4);
-  // tft.setTextColor(TFT_WHITE);
-  // tft.println(" White text");
-
-  // Using free fonts will have more sizes to choose
-  // tft.setCursor(0, 0);
-  // tft.setFreeFont(FS12);
-  // tft.println();
-  // tft.print("Printed using free fonts");
 
   /*Initialize the display*/
   static lv_disp_drv_t disp_drv;
@@ -59,31 +77,42 @@ void setup(void) {
   disp_drv.draw_buf = &draw_buf;
   lv_disp_drv_register( &disp_drv );
 
-  /*Display random stuffs*/
-  // display_random_stuffs();
+  /*Init LVGL screens*/
+  input_scr = lv_obj_create(NULL);
+  // another_scr = lv_obj_create(NULL);
 
-  /*GUI*/
 
+  /*Initialize LVGL input devices, i.e. keypad*/
+  static lv_indev_drv_t keypad_drv;  // This needs to be static or global variable
+  lv_indev_drv_init(&keypad_drv);
+  keypad_drv.type = LV_INDEV_TYPE_KEYPAD;
+  keypad_drv.read_cb = keypad_read;
+  /*Register the driver in LVGL and save the created input device object*/
+  keypad_indev = lv_indev_drv_register(&keypad_drv);
+
+  /*Init LVGL groups*/
+  input_grp = lv_group_create();
+  lv_indev_set_group(keypad_indev, input_grp);
+
+  /*Display the input screen*/
+  lv_scr_load(input_scr);
+  GUI();
 }
 
-bool flag = false;
+// bool flag = false;
 
 void loop() {
-  static lv_obj_t * another_scr = lv_obj_create(NULL);
-  static lv_obj_t * input_scr = lv_obj_create(NULL);
+  // static lv_obj_t * another_scr = lv_obj_create(NULL);
+  // static lv_obj_t * input_scr = lv_obj_create(NULL);
 
-  if (flag) {
-    lv_scr_load(another_scr);
-    another_GUI();
-  }
-  else {
-    lv_scr_load(input_scr);
-    GUI();
-  }
-
-  flag = !flag;
-  lv_timer_handler(); /* let the GUI do its work */
-  delay(2000);
+  // if (flag) {
+  //   lv_scr_load(another_scr);
+  //   another_GUI();
+  // }
+  // else {
+  //   lv_scr_load(input_scr);
+  //   GUI();
+  // }
 }
 
 #if LV_USE_LOG != 0
@@ -94,22 +123,6 @@ void my_print( lv_log_level_t level, const char * buf )
     Serial.flush();
 }
 #endif
-
-void display_random_stuffs() {
-  String LVGL_Arduino = "Hello Arduino! ";
-  LVGL_Arduino += String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
-
-  /* Create simple label */
-  lv_obj_t *label = lv_label_create( lv_scr_act() );
-  lv_label_set_text( label, LVGL_Arduino.c_str() );
-  lv_obj_align( label, LV_ALIGN_TOP_LEFT, 0, 0 );
-
-  /* Button with label */
-  lv_example_get_started_2();
-
-  /* Slider with label */
-  lv_example_get_started_4();
-}
 
 /* Display flushing */
 void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p ) {
@@ -124,36 +137,6 @@ void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *colo
     lv_disp_flush_ready( disp );
 }
 
-/**
- * Create a button with a label and react on click event.
- */
-void lv_example_get_started_2(void) {
-    lv_obj_t * btn = lv_btn_create(lv_scr_act());     /*Add a button the current screen*/
-    lv_obj_set_pos(btn, 10, 30);                            /*Set its position*/
-    lv_obj_set_size(btn, 120, 50);                          /*Set its size*/
-    // lv_obj_add_event(btn, btn_event_cb, LV_EVENT_ALL, NULL);           /*Assign a callback to the button*/
-
-    lv_obj_t * label = lv_label_create(btn);          /*Add a label to the button*/
-    lv_label_set_text(label, "Button");                     /*Set the labels text*/
-    lv_obj_center(label);
-}
-
-/**
- * Create a slider and write its value on a label.
- */
-void lv_example_get_started_4(void) {
-    /*Create a slider in the center of the display*/
-    lv_obj_t * slider = lv_slider_create(lv_scr_act());
-    lv_obj_set_width(slider, 200);                          /*Set the width*/
-    lv_obj_center(slider);                                  /*Align to the center of the parent (screen)*/
-    // lv_obj_add_event(slider, slider_event_cb, LV_EVENT_VALUE_CHANGED, NULL);     /*Assign an event function*/
-
-    /*Create a label above the slider*/
-    static lv_obj_t * label = lv_label_create(lv_scr_act());
-    lv_label_set_text(label, "0");
-    lv_obj_align_to(label, slider, LV_ALIGN_OUT_TOP_MID, 0, -15);    /*Align top of the slider*/
-}
-
 void GUI(void) {
   /*Change the active screen's background color*/
   lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0xacacac), LV_PART_MAIN);
@@ -163,9 +146,9 @@ void GUI(void) {
   lv_textarea_set_one_line(VTBI_ta, true);
   lv_obj_align(VTBI_ta, LV_ALIGN_TOP_LEFT, 5, 25);
   lv_obj_set_width(VTBI_ta, 80);
-  // lv_obj_add_event_cb(VTBI_ta, textarea_event_handler, LV_EVENT_READY, VTBI_ta);
   lv_textarea_set_placeholder_text(VTBI_ta, "Pls input");
-  lv_obj_add_state(VTBI_ta, LV_STATE_FOCUSED); /*To be sure the cursor is visible*/
+  lv_obj_add_event_cb(VTBI_ta, textarea_event_handler, LV_EVENT_ALL, VTBI_ta);
+  lv_group_add_obj(input_grp, VTBI_ta);
 
   /*Labels for `VTBI_ta`*/
   lv_obj_t * VTBI_label = lv_label_create(lv_scr_act());
@@ -181,9 +164,9 @@ void GUI(void) {
   lv_textarea_set_one_line(totalTimeHour_ta, true);
   lv_obj_align_to(totalTimeHour_ta, VTBI_ta, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30); // vertical text area spacing
   lv_obj_set_width(totalTimeHour_ta, 80);
-  // lv_obj_add_event_cb(VTBI_ta, textarea_event_handler, LV_EVENT_READY, VTBI_ta);
   lv_textarea_set_placeholder_text(totalTimeHour_ta, "Pls input");
-  // lv_obj_add_state(VTBI_ta, LV_STATE_FOCUSED); /*To be sure the cursor is visible*/
+  lv_obj_add_event_cb(totalTimeHour_ta, textarea_event_handler, LV_EVENT_ALL, totalTimeHour_ta);
+  lv_group_add_obj(input_grp, totalTimeHour_ta);
 
   /*Labels for `totalTimeHour_ta`*/
   lv_obj_t * totalTime_label = lv_label_create(lv_scr_act());
@@ -198,11 +181,10 @@ void GUI(void) {
   lv_obj_t * totalTimeMinute_ta = lv_textarea_create(lv_scr_act());
   lv_textarea_set_one_line(totalTimeMinute_ta, true);
   lv_obj_align_to(totalTimeMinute_ta, totalTimeHour_label, LV_ALIGN_OUT_RIGHT_MID, 20, 0); // horizontal text area spacing
-  // lv_obj_align(totalTimeMinute_ta, LV_ALIGN_TOP_LEFT, 150, 100);
   lv_obj_set_width(totalTimeMinute_ta, 80);
-  // lv_obj_add_event_cb(VTBI_ta, textarea_event_handler, LV_EVENT_READY, VTBI_ta);
   lv_textarea_set_placeholder_text(totalTimeMinute_ta, "Pls input");
-  // lv_obj_add_state(VTBI_ta, LV_STATE_FOCUSED); /*To be sure the cursor is visible*/
+  lv_obj_add_event_cb(totalTimeMinute_ta, textarea_event_handler, LV_EVENT_ALL, totalTimeMinute_ta);
+  lv_group_add_obj(input_grp, totalTimeMinute_ta);
 
   /*Labels for `totalTimeMinute_ta`*/
   lv_obj_t * totalTimeMinute_label = lv_label_create(lv_scr_act());
@@ -233,44 +215,44 @@ void GUI(void) {
   lv_obj_set_layout(dropFactor_cont, LV_LAYOUT_GRID);
 
   uint32_t i;
-  char buf[32];
+  char text_buf[32];
   for(i = 0; i < 4; i++) {
 
     switch (i) {
     case 0:
-      lv_snprintf(buf, sizeof(buf), "10 drops/mL");
+      lv_snprintf(text_buf, sizeof(text_buf), "10 drops/mL");
       break;
     case 1:
-      lv_snprintf(buf, sizeof(buf), "15 drops/mL");
+      lv_snprintf(text_buf, sizeof(text_buf), "15 drops/mL");
       break;
     case 2:
-      lv_snprintf(buf, sizeof(buf), "20 drops/mL");
+      lv_snprintf(text_buf, sizeof(text_buf), "20 drops/mL");
       break;
     case 3:
-      lv_snprintf(buf, sizeof(buf), "60 drops/mL");
+      lv_snprintf(text_buf, sizeof(text_buf), "60 drops/mL");
       break;
     default:
       break;
     }
 
-    radiobutton_create(dropFactor_cont, buf, i);
+    radiobutton_create(dropFactor_cont, text_buf, i);
   }
-
-  /*Make the 20 drops/mL checkbox checked*/
-  lv_obj_add_state(lv_obj_get_child(dropFactor_cont, 2), LV_STATE_CHECKED);
 
   /*Labels for `dropFactor_cont`*/
   lv_obj_t * dropFactor_label = lv_label_create(lv_scr_act());
   lv_label_set_text(dropFactor_label, "Drop factor:");
   lv_obj_align_to(dropFactor_label, dropFactor_cont, LV_ALIGN_OUT_TOP_LEFT, 0, -5);
-
-  // lv_obj_add_event_cb(dropFactor_cont, radio_event_handler, LV_EVENT_CLICKED, &active_index_1);
+  lv_obj_add_event_cb(dropFactor_cont, radio_event_handler, LV_EVENT_CLICKED, &active_radiobtn_id);
 }
 
-static void textarea_event_handler(lv_event_t * e) {
-  lv_obj_t * ta = lv_event_get_target(e);
-  LV_UNUSED(ta);
-  LV_LOG_USER("Enter was pressed. The current text is: %s", lv_textarea_get_text(ta));
+static void textarea_event_handler(lv_event_t * event) {
+  // NOTE: do not print anything inside this function
+  if(event->code == LV_EVENT_KEY) {
+    if (lv_indev_get_key(keypad_indev) == LV_KEY_ENTER) {
+      lv_obj_t * ta = lv_event_get_target(event);
+      lv_obj_clear_state(ta, LV_STATE_FOCUSED);
+    }
+  }
 }
 
 static void radiobutton_create(lv_obj_t * parent, const char * txt, uint32_t i) {
@@ -288,23 +270,23 @@ static void radiobutton_create(lv_obj_t * parent, const char * txt, uint32_t i) 
   uint8_t row = i / 2;
   lv_obj_set_grid_cell(obj, LV_GRID_ALIGN_SPACE_EVENLY, col, 1,
                         LV_GRID_ALIGN_SPACE_EVENLY, row, 1);
+  lv_group_add_obj(input_grp, obj);
 }
 
-static void radio_event_handler(lv_event_t * e) {
-  // uint32_t * active_id = lv_event_get_user_data(e);
-  // lv_obj_t * dropFactor_cont = lv_event_get_current_target(e);
-  // lv_obj_t * act_cb = lv_event_get_target(e);
-  // lv_obj_t * old_cb = lv_obj_get_child(dropFactor_cont, *active_id);
+static void radio_event_handler(lv_event_t * event) {
+  // NOTE: do not print anything inside this function
+  uint32_t * active_id = (uint32_t *)lv_event_get_user_data(event);
+  lv_obj_t * cont = lv_event_get_current_target(event);
+  lv_obj_t * act_cb = lv_event_get_target(event);
+  lv_obj_t * old_cb = lv_obj_get_child(cont, *active_id);
 
-  // /*Do nothing if the container was clicked*/
-  // if(act_cb == dropFactor_cont) return;
+  /*Do nothing if the container was clicked*/
+  if(act_cb == cont) return;
 
-  // lv_obj_clear_state(old_cb, LV_STATE_CHECKED);   /*Uncheck the previous radio button*/
-  // lv_obj_add_state(act_cb, LV_STATE_CHECKED);     /*Uncheck the current radio button*/
+  lv_obj_clear_state(old_cb, LV_STATE_CHECKED);   /*Uncheck the previous radio button*/
+  lv_obj_add_state(act_cb, LV_STATE_CHECKED);     /*Uncheck the current radio button*/
 
-  // *active_id = lv_obj_get_index(act_cb);
-
-  // LV_LOG_USER("Selected radio buttons: %d, %d", (int)active_index_1, (int)active_index_2);
+  *active_id = lv_obj_get_index(act_cb);
 }
 
 void another_GUI() {
@@ -315,4 +297,48 @@ void another_GUI() {
   lv_obj_t *label = lv_label_create( lv_scr_act() );
   lv_label_set_text( label, LVGL_Arduino.c_str() );
   lv_obj_align( label, LV_ALIGN_TOP_LEFT, 0, 0 );
+}
+
+// timer3 inerrupt, for refreshing TFT display
+void IRAM_ATTR TFT_DisplayISR(){
+  lv_timer_handler(); /* let the GUI do its work */
+}
+
+static void keypad_read(lv_indev_drv_t * drv, lv_indev_data_t * data){
+  // NOTE: do not print anything inside this function
+  uint32_t key = keypad.getKey();
+  if(key) {
+    if (key == 'E') {
+      data->key = LV_KEY_ENTER;
+    }
+    else if (key == 'C') {
+      data->key = LV_KEY_ESC;
+    }
+    else if (key == 'L') {
+      data->key = LV_KEY_LEFT;
+    }
+    else if (key == 'R') {
+      data->key = LV_KEY_RIGHT;
+    }
+    else if (key == 'U') {
+      data->key = LV_KEY_PREV;
+    }
+    else if (key == 'D') {
+      data->key = LV_KEY_NEXT;
+    }
+    else if (key == '#') {
+      data->key = LV_KEY_BACKSPACE;
+    }
+    else if (key == '*') {
+      data->key = LV_KEY_DEL;
+    }
+    else {
+      data->key = key;// possible BUG due to conversion from char to uint32_t
+    }
+
+    data->state = LV_INDEV_STATE_PRESSED;
+  }
+  else {
+    data->state = LV_INDEV_STATE_RELEASED;
+  }
 }
