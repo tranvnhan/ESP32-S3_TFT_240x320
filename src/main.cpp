@@ -152,7 +152,7 @@ void GUI(void) {
 
   /*Labels for `VTBI_ta`*/
   lv_obj_t * VTBI_label = lv_label_create(lv_scr_act());
-  lv_label_set_text(VTBI_label, "Total volume to be infused (VTBI):");
+  lv_label_set_text(VTBI_label, "Total volume:");  // BUG: shorten text makes display frozen
   lv_obj_align_to(VTBI_label, VTBI_ta, LV_ALIGN_OUT_TOP_LEFT, 0, -5);
 
   lv_obj_t * mL_label = lv_label_create(lv_scr_act());
@@ -243,6 +243,24 @@ void GUI(void) {
   lv_label_set_text(dropFactor_label, "Drop factor:");
   lv_obj_align_to(dropFactor_label, dropFactor_cont, LV_ALIGN_OUT_TOP_LEFT, 0, -5);
   lv_obj_add_event_cb(dropFactor_cont, radio_event_handler, LV_EVENT_CLICKED, &active_radiobtn_id);
+
+  /*Widget to show derived drip rate*/
+  lv_obj_t * derivedDripRate_cont;
+  derivedDripRate_cont = lv_obj_create(lv_scr_act());
+  lv_obj_set_style_border_color(derivedDripRate_cont, lv_color_hex(0x5b5b5b), LV_PART_MAIN);
+  lv_obj_set_style_radius(derivedDripRate_cont, 0x00, LV_PART_MAIN);
+  lv_obj_set_size(derivedDripRate_cont, 180, 70);
+  lv_obj_align(derivedDripRate_cont, LV_ALIGN_TOP_RIGHT, -5, 5);
+
+  /*label*/
+  lv_obj_t * derivedDripRate_label = lv_label_create(lv_scr_act());
+  lv_label_set_text(derivedDripRate_label, "Drip Rate (drops/min): ");
+  lv_obj_align_to(derivedDripRate_label, derivedDripRate_cont, LV_ALIGN_TOP_LEFT, -5, 0);
+
+  lv_obj_t * derivedDripRateValue_label = lv_label_create(lv_scr_act());
+  lv_label_set_text(derivedDripRateValue_label, "Please fill in all inputs");
+  lv_obj_set_style_text_color(derivedDripRateValue_label, lv_color_hex(0xcc0000), LV_PART_MAIN);
+  lv_obj_align_to(derivedDripRateValue_label, derivedDripRate_label, LV_ALIGN_LEFT_MID, 0, 20);
 }
 
 static void textarea_event_handler(lv_event_t * event) {
