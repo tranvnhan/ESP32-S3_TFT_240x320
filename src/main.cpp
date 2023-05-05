@@ -12,7 +12,7 @@ TFT_eSPI tft = TFT_eSPI();  // Invoke custom library
 
 /*LVGL variables*/
 static lv_disp_draw_buf_t draw_buf;
-static lv_color_t buf[ TFT_WIDTH * TFT_HEIGHT / 10 ];
+static lv_color_t color_buf[ TFT_WIDTH * TFT_HEIGHT / 10 ];
 
 static lv_obj_t * input_scr;
 static lv_obj_t * another_scr;
@@ -21,8 +21,7 @@ static lv_group_t * input_grp;
 
 static lv_style_t style_radio;
 static lv_style_t style_radio_chk;
-static uint32_t active_index_1 = 0;
-static uint32_t active_index_2 = 0;
+static uint32_t active_radiobtn_id = 0;
 
 /*Function prototypes*/
 void display_random_stuffs();
@@ -32,7 +31,7 @@ void lv_example_get_started_4(void);
 void GUI(void);
 static void textarea_event_handler(lv_event_t * event);
 static void radiobutton_create(lv_obj_t * parent, const char * txt, uint32_t i);
-static void radio_event_handler(lv_event_t * e);
+static void radio_event_handler(lv_event_t * event);
 void another_GUI();
 void IRAM_ATTR TFT_DisplayISR();
 static void keypad_read(lv_indev_drv_t * drv, lv_indev_data_t * data);
@@ -65,7 +64,7 @@ void setup(void) {
 
   /*LVGL setup*/
   lv_init();
-  lv_disp_draw_buf_init( &draw_buf, buf, NULL, TFT_WIDTH * TFT_HEIGHT / 10 );
+  lv_disp_draw_buf_init( &draw_buf, color_buf, NULL, TFT_WIDTH * TFT_HEIGHT / 10 );
 
   /*TFT display setup*/
   tft.init();
@@ -267,38 +266,34 @@ void GUI(void) {
   lv_obj_set_layout(dropFactor_cont, LV_LAYOUT_GRID);
 
   uint32_t i;
-  char buf[32];
+  char text_buf[32];
   for(i = 0; i < 4; i++) {
 
     switch (i) {
     case 0:
-      lv_snprintf(buf, sizeof(buf), "10 drops/mL");
+      lv_snprintf(text_buf, sizeof(text_buf), "10 drops/mL");
       break;
     case 1:
-      lv_snprintf(buf, sizeof(buf), "15 drops/mL");
+      lv_snprintf(text_buf, sizeof(text_buf), "15 drops/mL");
       break;
     case 2:
-      lv_snprintf(buf, sizeof(buf), "20 drops/mL");
+      lv_snprintf(text_buf, sizeof(text_buf), "20 drops/mL");
       break;
     case 3:
-      lv_snprintf(buf, sizeof(buf), "60 drops/mL");
+      lv_snprintf(text_buf, sizeof(text_buf), "60 drops/mL");
       break;
     default:
       break;
     }
 
-    radiobutton_create(dropFactor_cont, buf, i);
+    radiobutton_create(dropFactor_cont, text_buf, i);
   }
-
-  /*Make the 20 drops/mL checkbox checked*/
-  lv_obj_add_state(lv_obj_get_child(dropFactor_cont, 2), LV_STATE_CHECKED);
 
   /*Labels for `dropFactor_cont`*/
   lv_obj_t * dropFactor_label = lv_label_create(lv_scr_act());
   lv_label_set_text(dropFactor_label, "Drop factor:");
   lv_obj_align_to(dropFactor_label, dropFactor_cont, LV_ALIGN_OUT_TOP_LEFT, 0, -5);
-
-  // lv_obj_add_event_cb(dropFactor_cont, radio_event_handler, LV_EVENT_CLICKED, &active_index_1);
+  lv_obj_add_event_cb(dropFactor_cont, radio_event_handler, LV_EVENT_CLICKED, &active_radiobtn_id);
 }
 
 static void textarea_event_handler(lv_event_t * event) {
@@ -327,24 +322,22 @@ static void radiobutton_create(lv_obj_t * parent, const char * txt, uint32_t i) 
   lv_obj_set_grid_cell(obj, LV_GRID_ALIGN_SPACE_EVENLY, col, 1,
                         LV_GRID_ALIGN_SPACE_EVENLY, row, 1);
   lv_group_add_obj(input_grp, obj);
-  // TODO: need to de-select other radio buttons when one is selected
 }
 
-static void radio_event_handler(lv_event_t * e) {
-  // uint32_t * active_id = lv_event_get_user_data(e);
-  // lv_obj_t * dropFactor_cont = lv_event_get_current_target(e);
-  // lv_obj_t * act_cb = lv_event_get_target(e);
-  // lv_obj_t * old_cb = lv_obj_get_child(dropFactor_cont, *active_id);
+static void radio_event_handler(lv_event_t * event) {
+  // NOTE: do not print anything inside this function
+  uint32_t * active_id = (uint32_t *)lv_event_get_user_data(event);
+  lv_obj_t * cont = lv_event_get_current_target(event);
+  lv_obj_t * act_cb = lv_event_get_target(event);
+  lv_obj_t * old_cb = lv_obj_get_child(cont, *active_id);
 
-  // /*Do nothing if the container was clicked*/
-  // if(act_cb == dropFactor_cont) return;
+  /*Do nothing if the container was clicked*/
+  if(act_cb == cont) return;
 
-  // lv_obj_clear_state(old_cb, LV_STATE_CHECKED);   /*Uncheck the previous radio button*/
-  // lv_obj_add_state(act_cb, LV_STATE_CHECKED);     /*Uncheck the current radio button*/
+  lv_obj_clear_state(old_cb, LV_STATE_CHECKED);   /*Uncheck the previous radio button*/
+  lv_obj_add_state(act_cb, LV_STATE_CHECKED);     /*Uncheck the current radio button*/
 
-  // *active_id = lv_obj_get_index(act_cb);
-
-  // LV_LOG_USER("Selected radio buttons: %d, %d", (int)active_index_1, (int)active_index_2);
+  *active_id = lv_obj_get_index(act_cb);
 }
 
 void another_GUI() {
