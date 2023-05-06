@@ -25,11 +25,12 @@ static lv_style_t style_radio_chk;
 static uint32_t active_radiobtn_id = 0;
 
 /*Parsed user input variables*/
-uint32_t keypad_VTBI = 0;
-uint32_t keypad_totalTimeHour = 0;
-uint32_t keypad_totalTimeMinute = 0;
-uint32_t keypad_dropFactor = 0;
+int32_t keypad_VTBI = -1;
+int32_t keypad_totalTimeHour = -1;
+int32_t keypad_totalTimeMinute = -1;
+int32_t keypad_dropFactor = -1;
 
+bool keypad_check = false;
 
 void display_init() {
   /*TFT display setup*/
@@ -223,19 +224,31 @@ static void textarea_event_handler(lv_event_t * event) {
       data_buf = lv_textarea_get_text(ta);
 
       // Identify which input
+      static int32_t * selected_input;
       int ta_id = *(int *) lv_obj_get_user_data(ta);
       if (ta_id == LV_VTBI_ID) {
-        keypad_VTBI = atoi(data_buf);
+        selected_input = &keypad_VTBI;
       }
       else if (ta_id == LV_TOTAL_TIME_HOUR_ID) {
-        keypad_totalTimeHour = atoi(data_buf);
+        selected_input = &keypad_totalTimeHour;
       }
       else if (ta_id == LV_TOTAL_TIME_MINUE_ID) {
-        keypad_totalTimeMinute = atoi(data_buf);
+        selected_input = &keypad_totalTimeMinute;
+      }
+
+      if (*data_buf != NULL) {  // only parse when we receive input
+        *selected_input = atoi(data_buf);
+      }
+      else {
+        // reset value of that input
+        *selected_input = -1;
       }
 
       // Stop cursor blinking
       lv_obj_clear_state(ta, LV_STATE_FOCUSED);
+
+      // Call the function to validate keypad inputs
+      keypad_check = validate_keypad_inputs();
     }
   }
 }
@@ -286,6 +299,9 @@ static void radio_event_handler(lv_event_t * event) {
   else if (*active_id == LV_DROP_FACTOR_60_ID) {
     keypad_dropFactor = 60;
   }
+  
+  // Call the function to validate keypad inputs
+  keypad_check = validate_keypad_inputs();
 }
 
 void another_GUI() {
@@ -346,3 +362,18 @@ void my_print( lv_log_level_t level, const char * buf )
 }
 #endif
 
+// Check if all inputs are provided,
+// and satisfy the requirements
+bool validate_keypad_inputs() {
+  if ((keypad_VTBI != -1) &&
+      (keypad_totalTimeHour != -1) &&
+      (keypad_totalTimeMinute != -1) &&
+      (keypad_dropFactor != -1)) {
+    
+    // TODO: some checks to verify that inputs are valid
+
+    // TODO: calculate drip rate
+    return true;
+  }
+  else return false;
+}

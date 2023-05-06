@@ -39,6 +39,7 @@ void loop() {
   //   lv_scr_load(input_scr);
   //   GUI();
   // }
+  // Serial.println(keypad_check);
 }
 
 // timer3 interrupt, for refreshing TFT display

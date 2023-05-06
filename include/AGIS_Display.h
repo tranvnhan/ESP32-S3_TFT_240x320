@@ -16,13 +16,16 @@ extern lv_indev_t * keypad_indev;
 extern lv_group_t * input_grp;
 
 // Use these variables in main.cpp
-extern uint32_t keypad_VTBI;
-extern uint32_t keypad_totalTimeHour;
-extern uint32_t keypad_totalTimeMinute;
-extern uint32_t keypad_dropFactor;
+extern int32_t keypad_VTBI;
+extern int32_t keypad_totalTimeHour;
+extern int32_t keypad_totalTimeMinute;
+extern int32_t keypad_dropFactor;
 
 /*Keypad variables*/
 extern Keypad keypad;
+
+// For testing:
+extern bool keypad_check;
 
 void display_init();
 void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p );
@@ -32,5 +35,6 @@ static void radiobutton_create(lv_obj_t * parent, const char * txt, uint32_t i);
 static void radio_event_handler(lv_event_t * event);
 void another_GUI();
 static void keypad_read(lv_indev_drv_t * drv, lv_indev_data_t * data);
+bool validate_keypad_inputs();
 
 #endif /* ECFC85B5_FBAD_44F5_B4D7_5DC33680411F */
