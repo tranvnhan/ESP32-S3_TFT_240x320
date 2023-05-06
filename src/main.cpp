@@ -46,6 +46,20 @@ byte pin_rows[KEYPAD_ROW_NUM] = {8, 18, 17, 16, 15};  // pin for R1, R2, R3, R4,
 byte pin_column[KEYPAD_COLUMN_NUM] = {4, 5, 6, 7};    // pin for C1, C2, C3, C4
 Keypad keypad = Keypad( makeKeymap(keys), pin_rows, pin_column, KEYPAD_ROW_NUM, KEYPAD_COLUMN_NUM );
 
+/*Parsed user input variables*/
+uint32_t VTBI = 0;
+uint32_t totalTimeHour = 0;
+uint32_t totalTimeMinute = 0;
+uint32_t dropFactor = 0;
+const char * data_buf = NULL;
+#define LV_VTBI_ID             100
+#define LV_TOTAL_TIME_HOUR_ID  101
+#define LV_TOTAL_TIME_MINUE_ID 102
+#define LV_DROP_FACTOR_10_ID   0
+#define LV_DROP_FACTOR_15_ID   1
+#define LV_DROP_FACTOR_20_ID   2
+#define LV_DROP_FACTOR_60_ID   3
+
 // create pointer for timer
 hw_timer_t *Timer3_cfg = NULL; // create a pointer for timer3
 
@@ -147,6 +161,8 @@ void GUI(void) {
   lv_obj_align(VTBI_ta, LV_ALIGN_TOP_LEFT, 5, 25);
   lv_obj_set_width(VTBI_ta, 80);
   lv_textarea_set_placeholder_text(VTBI_ta, "Pls input");
+  static int lv_VTBI_id = LV_VTBI_ID;
+  lv_obj_set_user_data(VTBI_ta, &lv_VTBI_id);
   lv_obj_add_event_cb(VTBI_ta, textarea_event_handler, LV_EVENT_ALL, VTBI_ta);
   lv_group_add_obj(input_grp, VTBI_ta);
 
@@ -165,6 +181,8 @@ void GUI(void) {
   lv_obj_align_to(totalTimeHour_ta, VTBI_ta, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30); // vertical text area spacing
   lv_obj_set_width(totalTimeHour_ta, 80);
   lv_textarea_set_placeholder_text(totalTimeHour_ta, "Pls input");
+  static int lv_totalTimeHour_id = LV_TOTAL_TIME_HOUR_ID;
+  lv_obj_set_user_data(totalTimeHour_ta, &lv_totalTimeHour_id);
   lv_obj_add_event_cb(totalTimeHour_ta, textarea_event_handler, LV_EVENT_ALL, totalTimeHour_ta);
   lv_group_add_obj(input_grp, totalTimeHour_ta);
 
@@ -183,6 +201,8 @@ void GUI(void) {
   lv_obj_align_to(totalTimeMinute_ta, totalTimeHour_label, LV_ALIGN_OUT_RIGHT_MID, 20, 0); // horizontal text area spacing
   lv_obj_set_width(totalTimeMinute_ta, 80);
   lv_textarea_set_placeholder_text(totalTimeMinute_ta, "Pls input");
+  static int lv_totalTimeMinute_id = LV_TOTAL_TIME_MINUE_ID;
+  lv_obj_set_user_data(totalTimeMinute_ta, &lv_totalTimeMinute_id);
   lv_obj_add_event_cb(totalTimeMinute_ta, textarea_event_handler, LV_EVENT_ALL, totalTimeMinute_ta);
   lv_group_add_obj(input_grp, totalTimeMinute_ta);
 
@@ -268,6 +288,23 @@ static void textarea_event_handler(lv_event_t * event) {
   if(event->code == LV_EVENT_KEY) {
     if (lv_indev_get_key(keypad_indev) == LV_KEY_ENTER) {
       lv_obj_t * ta = lv_event_get_target(event);
+
+      // Parse the inputted data
+      data_buf = lv_textarea_get_text(ta);
+
+      // Identify which input
+      int ta_id = *(int *) lv_obj_get_user_data(ta);
+      if (ta_id == LV_VTBI_ID) {
+        VTBI = atoi(data_buf);
+      }
+      else if (ta_id == LV_TOTAL_TIME_HOUR_ID) {
+        totalTimeHour = atoi(data_buf);
+      }
+      else if (ta_id == LV_TOTAL_TIME_MINUE_ID) {
+        totalTimeMinute = atoi(data_buf);
+      }
+
+      // Stop cursor blinking
       lv_obj_clear_state(ta, LV_STATE_FOCUSED);
     }
   }
@@ -305,6 +342,20 @@ static void radio_event_handler(lv_event_t * event) {
   lv_obj_add_state(act_cb, LV_STATE_CHECKED);     /*Uncheck the current radio button*/
 
   *active_id = lv_obj_get_index(act_cb);
+
+  // Parse selected radio button
+  if (*active_id == LV_DROP_FACTOR_10_ID) {
+    dropFactor = 10;
+  }
+  else if (*active_id == LV_DROP_FACTOR_15_ID) {
+    dropFactor = 15;
+  }
+  else if (*active_id == LV_DROP_FACTOR_20_ID) {
+    dropFactor = 20;
+  }
+  else if (*active_id == LV_DROP_FACTOR_60_ID) {
+    dropFactor = 60;
+  }
 }
 
 void another_GUI() {
