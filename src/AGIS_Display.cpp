@@ -19,6 +19,7 @@ lv_obj_t * input_scr;
 lv_obj_t * another_scr;
 lv_indev_t * keypad_indev;
 lv_group_t * input_grp;
+lv_obj_t * derivedDripRateValue_label;
 
 static lv_style_t style_radio;
 static lv_style_t style_radio_chk;
@@ -207,7 +208,7 @@ void GUI(void) {
   lv_label_set_text(derivedDripRate_label, "Drip Rate (drops/min): ");
   lv_obj_align_to(derivedDripRate_label, derivedDripRate_cont, LV_ALIGN_TOP_LEFT, -5, 0);
 
-  lv_obj_t * derivedDripRateValue_label = lv_label_create(lv_scr_act());
+  derivedDripRateValue_label = lv_label_create(lv_scr_act());
   lv_label_set_text(derivedDripRateValue_label, "Please fill in all inputs");
   lv_obj_set_style_text_color(derivedDripRateValue_label, lv_color_hex(0xcc0000), LV_PART_MAIN);
   lv_obj_align_to(derivedDripRateValue_label, derivedDripRate_label, LV_ALIGN_LEFT_MID, 0, 20);
@@ -373,7 +374,15 @@ bool validate_keypad_inputs() {
     // TODO: some checks to verify that inputs are valid
 
     // TODO: calculate drip rate
+
+    // TODO: update label s.t. user knows if inputs are ok or not
+    lv_obj_set_style_text_color(derivedDripRateValue_label, lv_color_hex(0x40ce00), LV_PART_MAIN);
+    lv_label_set_text(derivedDripRateValue_label, "haha");
+
     return true;
   }
-  else return false;
+  else {
+    lv_label_set_text(derivedDripRateValue_label, "Please fill in all inputs");
+    return false;
+  }
 }
