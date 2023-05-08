@@ -19,6 +19,7 @@ extern lv_group_t * input_grp;
 extern int32_t keypad_VTBI;
 extern int32_t keypad_totalTimeHour;
 extern int32_t keypad_totalTimeMinute;
+extern int32_t keypad_targetDripRate;
 extern int32_t keypad_dropFactor;
 
 /*Keypad variables*/
@@ -36,5 +37,6 @@ static void radio_event_handler(lv_event_t * event);
 void another_GUI();
 static void keypad_read(lv_indev_drv_t * drv, lv_indev_data_t * data);
 bool validate_keypad_inputs();
+int32_t calculate_drip_rate(int32_t volume, int32_t time, int32_t dropFactor);
 
 #endif /* ECFC85B5_FBAD_44F5_B4D7_5DC33680411F */

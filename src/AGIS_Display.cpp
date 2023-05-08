@@ -29,6 +29,7 @@ static uint32_t active_radiobtn_id = 0;
 int32_t keypad_VTBI = -1;
 int32_t keypad_totalTimeHour = -1;
 int32_t keypad_totalTimeMinute = -1;
+int32_t keypad_targetDripRate = -1;
 int32_t keypad_dropFactor = -1;
 
 bool keypad_check = false;
@@ -373,11 +374,15 @@ bool validate_keypad_inputs() {
     
     // TODO: some checks to verify that inputs are valid
 
-    // TODO: calculate drip rate
+    keypad_targetDripRate = calculate_drip_rate(
+        keypad_VTBI, keypad_totalTimeHour * 60 + keypad_totalTimeMinute,
+        keypad_dropFactor);
 
     // TODO: update label s.t. user knows if inputs are ok or not
+    char buf[20];
+    sprintf(buf, "%d", keypad_targetDripRate);  // only keep integer part
     lv_obj_set_style_text_color(derivedDripRateValue_label, lv_color_hex(0x40ce00), LV_PART_MAIN);
-    lv_label_set_text(derivedDripRateValue_label, "haha");
+    lv_label_set_text(derivedDripRateValue_label, buf);
 
     return true;
   }
@@ -386,4 +391,18 @@ bool validate_keypad_inputs() {
     lv_label_set_text(derivedDripRateValue_label, "Please fill in all inputs");
     return false;
   }
+}
+
+/**
+ * Calculate the drip rate based on the inputs, rounded to the nearest integer
+ * @param volume Volume to be infused, in mL
+ * @param time Time of infusion, in minutes
+ * @param dropFactor Drop factor of the tubbing set
+ * @return Calculated drip rate, in drops/min
+ */
+int32_t calculate_drip_rate(int32_t volume, int32_t time, int32_t dropFactor) {
+  int32_t numerator = volume * dropFactor;
+  int32_t denominator = time;
+
+  return (numerator + denominator / 2) / denominator;
 }
