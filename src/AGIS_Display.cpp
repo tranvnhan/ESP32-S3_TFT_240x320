@@ -16,7 +16,7 @@ lv_disp_draw_buf_t draw_buf;
 lv_color_t color_buf[ TFT_WIDTH * TFT_HEIGHT / 5 ];
 
 lv_obj_t * input_scr;
-lv_obj_t * another_scr;
+lv_obj_t * monitor_scr;
 lv_indev_t * keypad_indev;
 lv_group_t * input_grp;
 lv_obj_t * derivedDripRateValue_label;
@@ -55,7 +55,7 @@ void display_init() {
 
   /*Inittialize LVGL screens*/
   input_scr = lv_obj_create(NULL);
-  // another_scr = lv_obj_create(NULL);
+  monitor_scr = lv_obj_create(NULL);
 
   /*Initialize LVGL input devices, i.e. keypad*/
   static lv_indev_drv_t keypad_drv;  // This needs to be static or global variable
@@ -83,7 +83,7 @@ void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *colo
     lv_disp_flush_ready( disp );
 }
 
-void GUI(void) {
+void input_screen(void) {
   /*Change the active screen's background color*/
   lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0xacacac), LV_PART_MAIN);
 
@@ -304,7 +304,7 @@ static void radio_event_handler(lv_event_t * event) {
   keypad_check = validate_keypad_inputs();
 }
 
-void another_GUI() {
+void monitor_screen() {
   String LVGL_Arduino = "Hello Arduino! ";
   LVGL_Arduino += String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
 
@@ -342,6 +342,21 @@ static void keypad_read(lv_indev_drv_t * drv, lv_indev_data_t * data){
     else if (key == '*') {
       data->key = LV_KEY_DEL;
     }
+    else if (key == 'F') {
+      // Test: display another screen
+      lv_scr_load(monitor_scr);
+      monitor_screen();
+
+      // TODO: how to properly delete unused screen?
+      // if (input_scr != NULL) {
+      //   lv_obj_del(input_scr);
+      //   input_scr = NULL;
+      // }
+    }
+    // else if (key == 'G') {
+    //   // TODO: send the keypad inputs to autoControl
+    //   // and display the monitoring info
+    // }
     else {
       data->key = key;// possible BUG due to conversion from char to uint32_t
     }

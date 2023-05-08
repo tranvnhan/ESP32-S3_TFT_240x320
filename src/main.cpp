@@ -22,24 +22,10 @@ void setup(void) {
 
   /*Display the input screen*/
   lv_scr_load(input_scr);
-  GUI();
+  input_screen();
 }
 
-// bool flag = false;
-
 void loop() {
-  // static lv_obj_t * another_scr = lv_obj_create(NULL);
-  // static lv_obj_t * input_scr = lv_obj_create(NULL);
-
-  // if (flag) {
-  //   lv_scr_load(another_scr);
-  //   another_GUI();
-  // }
-  // else {
-  //   lv_scr_load(input_scr);
-  //   GUI();
-  // }
-  // Serial.println(keypad_check);
 }
 
 // timer3 interrupt, for refreshing TFT display
