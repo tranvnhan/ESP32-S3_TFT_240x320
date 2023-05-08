@@ -100,7 +100,7 @@ void GUI(void) {
 
   /*Labels for `VTBI_ta`*/
   lv_obj_t * VTBI_label = lv_label_create(lv_scr_act());
-  lv_label_set_text(VTBI_label, "Total volume:");  // BUG: shorten text makes display frozen
+  lv_label_set_text(VTBI_label, "VTBI:");
   lv_obj_align_to(VTBI_label, VTBI_ta, LV_ALIGN_OUT_TOP_LEFT, 0, -5);
 
   lv_obj_t * mL_label = lv_label_create(lv_scr_act());
@@ -206,7 +206,7 @@ void GUI(void) {
 
   /*label*/
   lv_obj_t * derivedDripRate_label = lv_label_create(lv_scr_act());
-  lv_label_set_text(derivedDripRate_label, "Drip Rate (drops/min): ");
+  lv_label_set_text(derivedDripRate_label, "Drip rate (drops/min): ");
   lv_obj_align_to(derivedDripRate_label, derivedDripRate_cont, LV_ALIGN_TOP_LEFT, -5, 0);
 
   derivedDripRateValue_label = lv_label_create(lv_scr_act());
@@ -217,41 +217,39 @@ void GUI(void) {
 
 static void textarea_event_handler(lv_event_t * event) {
   // NOTE: do not print anything inside this function
-  if(event->code == LV_EVENT_KEY) {
-    if (lv_indev_get_key(keypad_indev) == LV_KEY_ENTER) {
-      lv_obj_t * ta = lv_event_get_target(event);
+  if(event->code == LV_EVENT_KEY && lv_indev_get_key(keypad_indev) == LV_KEY_ENTER) {
+    lv_obj_t * ta = lv_event_get_target(event);
 
-      // Parse the inputted data
-      const char * data_buf = NULL;
-      data_buf = lv_textarea_get_text(ta);
+    // Parse the inputted data
+    const char * data_buf = NULL;
+    data_buf = lv_textarea_get_text(ta);
 
-      // Identify which input
-      static int32_t * selected_input;
-      int ta_id = *(int *) lv_obj_get_user_data(ta);
-      if (ta_id == LV_VTBI_ID) {
-        selected_input = &keypad_VTBI;
-      }
-      else if (ta_id == LV_TOTAL_TIME_HOUR_ID) {
-        selected_input = &keypad_totalTimeHour;
-      }
-      else if (ta_id == LV_TOTAL_TIME_MINUE_ID) {
-        selected_input = &keypad_totalTimeMinute;
-      }
-
-      if (*data_buf != NULL) {  // only parse when we receive input
-        *selected_input = atoi(data_buf);
-      }
-      else {
-        // reset value of that input
-        *selected_input = -1;
-      }
-
-      // Stop cursor blinking
-      lv_obj_clear_state(ta, LV_STATE_FOCUSED);
-
-      // Call the function to validate keypad inputs
-      keypad_check = validate_keypad_inputs();
+    // Identify which input
+    static int32_t * selected_input;
+    int ta_id = *(int *) lv_obj_get_user_data(ta);
+    if (ta_id == LV_VTBI_ID) {
+      selected_input = &keypad_VTBI;
     }
+    else if (ta_id == LV_TOTAL_TIME_HOUR_ID) {
+      selected_input = &keypad_totalTimeHour;
+    }
+    else if (ta_id == LV_TOTAL_TIME_MINUE_ID) {
+      selected_input = &keypad_totalTimeMinute;
+    }
+
+    if (*data_buf) {  // only parse when we receive input
+      *selected_input = atoi(data_buf);
+    }
+    else {
+      // reset value of that input
+      *selected_input = -1;
+    }
+
+    // Stop cursor blinking
+    lv_obj_clear_state(ta, LV_STATE_FOCUSED);
+
+    // Call the function to validate keypad inputs
+    keypad_check = validate_keypad_inputs();
   }
 }
 
@@ -378,7 +376,6 @@ bool validate_keypad_inputs() {
         keypad_VTBI, keypad_totalTimeHour * 60 + keypad_totalTimeMinute,
         keypad_dropFactor);
 
-    // TODO: update label s.t. user knows if inputs are ok or not
     char buf[20];
     sprintf(buf, "%d", keypad_targetDripRate);  // only keep integer part
     lv_obj_set_style_text_color(derivedDripRateValue_label, lv_color_hex(0x40ce00), LV_PART_MAIN);
