@@ -15,8 +15,8 @@ TFT_eSPI tft_display = TFT_eSPI();
 lv_disp_draw_buf_t draw_buf;
 lv_color_t color_buf[ TFT_WIDTH * TFT_HEIGHT / 5 ];
 
-lv_obj_t * input_scr;
-lv_obj_t * monitor_scr;
+lv_obj_t * input_scr = NULL;
+lv_obj_t * monitor_scr = NULL;
 lv_indev_t * keypad_indev;
 lv_group_t * input_grp;
 lv_obj_t * derivedDripRateValue_label;
@@ -55,7 +55,6 @@ void display_init() {
 
   /*Inittialize LVGL screens*/
   input_scr = lv_obj_create(NULL);
-  monitor_scr = lv_obj_create(NULL);
 
   /*Initialize LVGL input devices, i.e. keypad*/
   static lv_indev_drv_t keypad_drv;  // This needs to be static or global variable
@@ -305,13 +304,36 @@ static void radio_event_handler(lv_event_t * event) {
 }
 
 void monitor_screen() {
-  String LVGL_Arduino = "Hello Arduino! ";
-  LVGL_Arduino += String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
+  /*Use labels*/
+  // lv_obj_t *numOfDrops_label = lv_label_create(lv_scr_act());
+  // lv_label_set_text(numOfDrops_label, "No. of drops:");
+  // lv_obj_align(numOfDrops_label, LV_ALIGN_TOP_LEFT, 0, 0 );
 
-  /* Create simple label */
-  lv_obj_t *label = lv_label_create( lv_scr_act() );
-  lv_label_set_text( label, LVGL_Arduino.c_str() );
-  lv_obj_align( label, LV_ALIGN_TOP_LEFT, 0, 0 );
+  // lv_obj_t *dripRate_label = lv_label_create(lv_scr_act());
+  // lv_label_set_text(dripRate_label, "Drip rate (drops/min):");
+  // lv_obj_align_to(dripRate_label, numOfDrops_label, LV_ALIGN_TOP_LEFT, 0, 20);
+
+  // lv_obj_t *infusedVolume_label = lv_label_create(lv_scr_act());
+  // lv_label_set_text(infusedVolume_label, "Infused volume (mL):");
+  // lv_obj_align_to(infusedVolume_label,dripRate_label, LV_ALIGN_TOP_LEFT, 0, 20);
+
+  /*Use table*/
+  lv_obj_t * table = lv_table_create(lv_scr_act());
+  lv_table_set_col_cnt(table, 2);
+  lv_table_set_row_cnt(table, 5);
+  lv_obj_align(table, LV_ALIGN_CENTER, 0, 0);
+  // lv_obj_set_style_border_color(table, lv_color_hex(0x5b5b5b), LV_PART_MAIN);
+  lv_obj_set_style_border_opa(table, LV_OPA_TRANSP, LV_PART_MAIN);
+  lv_obj_set_style_line_color(table, lv_color_hex(0x5b5b5b), LV_PART_MAIN);
+  lv_table_set_col_width(table, 0, 180);
+
+  /*Fill the first column*/
+  lv_table_set_cell_value(table, 0, 0, "No. of drops:");
+  lv_table_set_cell_value(table, 1, 0, "Drip rate (drops/min):");
+  lv_table_set_cell_value(table, 2, 0, "Infused volume (mL):");
+  lv_table_set_cell_value(table, 3, 0, "Infused time:");
+  lv_table_set_cell_value(table, 4, 0, "Infusion state:");
+
 }
 
 static void keypad_read(lv_indev_drv_t * drv, lv_indev_data_t * data){
@@ -344,14 +366,17 @@ static void keypad_read(lv_indev_drv_t * drv, lv_indev_data_t * data){
     }
     else if (key == 'F') {
       // Test: display another screen
-      lv_scr_load(monitor_scr);
-      monitor_screen();
+      if (monitor_scr == NULL) {
+        monitor_scr = lv_obj_create(NULL);
+        lv_scr_load(monitor_scr);
+        monitor_screen();
+      }
 
-      // TODO: how to properly delete unused screen?
-      // if (input_scr != NULL) {
-      //   lv_obj_del(input_scr);
-      //   input_scr = NULL;
-      // }
+      // TODO: check how to properly delete unused screen?
+      if (input_scr != NULL) {
+        lv_obj_del(input_scr);
+        input_scr = NULL;
+      }
     }
     // else if (key == 'G') {
     //   // TODO: send the keypad inputs to autoControl
