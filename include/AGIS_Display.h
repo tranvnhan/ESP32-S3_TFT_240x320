@@ -8,7 +8,7 @@
 #include <AGIS_Keypad.h>
 
 extern lv_disp_draw_buf_t draw_buf;
-extern lv_color_t color_buf[ TFT_WIDTH * TFT_HEIGHT / 10 ];
+extern lv_color_t color_buf[ TFT_WIDTH * TFT_HEIGHT / 5 ];
 
 extern lv_obj_t * input_scr;
 extern lv_obj_t * another_scr;

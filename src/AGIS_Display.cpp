@@ -13,7 +13,7 @@ TFT_eSPI tft_display = TFT_eSPI();
 
 /*LVGL variables*/
 lv_disp_draw_buf_t draw_buf;
-lv_color_t color_buf[ TFT_WIDTH * TFT_HEIGHT / 10 ];
+lv_color_t color_buf[ TFT_WIDTH * TFT_HEIGHT / 5 ];
 
 lv_obj_t * input_scr;
 lv_obj_t * another_scr;
@@ -40,7 +40,7 @@ void display_init() {
 
   /*Initialize LVGL*/
   lv_init();
-  lv_disp_draw_buf_init( &draw_buf, color_buf, NULL, TFT_WIDTH * TFT_HEIGHT / 10 );
+  lv_disp_draw_buf_init( &draw_buf, color_buf, NULL, TFT_WIDTH * TFT_HEIGHT / 5 );
 
   /*Initialize LVGL display driver*/
   static lv_disp_drv_t disp_drv;
@@ -382,6 +382,7 @@ bool validate_keypad_inputs() {
     return true;
   }
   else {
+    lv_obj_set_style_text_color(derivedDripRateValue_label, lv_color_hex(0xcc0000), LV_PART_MAIN);
     lv_label_set_text(derivedDripRateValue_label, "Please fill in all inputs");
     return false;
   }
