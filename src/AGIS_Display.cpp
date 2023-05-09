@@ -20,6 +20,7 @@ lv_obj_t * monitor_scr = NULL;
 lv_indev_t * keypad_indev;
 lv_group_t * input_grp;
 lv_obj_t * derivedDripRateValue_label;
+lv_obj_t * infusion_monitoring_table = NULL;
 
 static lv_style_t style_radio;
 static lv_style_t style_radio_chk;
@@ -33,6 +34,10 @@ int32_t keypad_targetDripRate = -1;
 int32_t keypad_dropFactor = -1;
 
 bool keypad_check = false;
+
+/*Infusion monitoring variables*/
+uint32_t dummy = 0;
+lv_timer_t * infusion_monitoring_timer;
 
 void display_init() {
   /*TFT display setup*/
@@ -67,6 +72,9 @@ void display_init() {
   /*Init LVGL groups*/
   input_grp = lv_group_create();
   lv_indev_set_group(keypad_indev, input_grp);
+
+  /*Register LVGL timers*/
+  infusion_monitoring_timer = lv_timer_create(infusion_monitoring_cb, 500,  &dummy);  // call every 500ms
 }
 
 /* Display flushing */
@@ -318,21 +326,28 @@ void monitor_screen() {
   // lv_obj_align_to(infusedVolume_label,dripRate_label, LV_ALIGN_TOP_LEFT, 0, 20);
 
   /*Use table*/
-  lv_obj_t * table = lv_table_create(lv_scr_act());
-  lv_table_set_col_cnt(table, 2);
-  lv_table_set_row_cnt(table, 5);
-  lv_obj_align(table, LV_ALIGN_CENTER, 0, 0);
-  // lv_obj_set_style_border_color(table, lv_color_hex(0x5b5b5b), LV_PART_MAIN);
-  lv_obj_set_style_border_opa(table, LV_OPA_TRANSP, LV_PART_MAIN);
-  lv_obj_set_style_line_color(table, lv_color_hex(0x5b5b5b), LV_PART_MAIN);
-  lv_table_set_col_width(table, 0, 180);
+  infusion_monitoring_table = lv_table_create(lv_scr_act());
+  lv_table_set_col_cnt(infusion_monitoring_table, 2);
+  lv_table_set_row_cnt(infusion_monitoring_table, 5);
+  lv_obj_align(infusion_monitoring_table, LV_ALIGN_CENTER, 0, 0);
+  // lv_obj_set_style_border_color(infusion_monitoring_table, lv_color_hex(0x5b5b5b), LV_PART_MAIN);
+  lv_obj_set_style_border_opa(infusion_monitoring_table, LV_OPA_TRANSP, LV_PART_MAIN);
+  lv_obj_set_style_line_color(infusion_monitoring_table, lv_color_hex(0x5b5b5b), LV_PART_MAIN);
+  lv_table_set_col_width(infusion_monitoring_table, 0, 180);
 
   /*Fill the first column*/
-  lv_table_set_cell_value(table, 0, 0, "No. of drops:");
-  lv_table_set_cell_value(table, 1, 0, "Drip rate (drops/min):");
-  lv_table_set_cell_value(table, 2, 0, "Infused volume (mL):");
-  lv_table_set_cell_value(table, 3, 0, "Infused time:");
-  lv_table_set_cell_value(table, 4, 0, "Infusion state:");
+  lv_table_set_cell_value(infusion_monitoring_table, 0, 0, "No. of drops:");
+  lv_table_set_cell_value(infusion_monitoring_table, 1, 0, "Drip rate (drops/min):");
+  lv_table_set_cell_value(infusion_monitoring_table, 2, 0, "Infused volume (mL):");
+  lv_table_set_cell_value(infusion_monitoring_table, 3, 0, "Infused time:");
+  lv_table_set_cell_value(infusion_monitoring_table, 4, 0, "Infusion state:");
+
+  /*Fill the second column*/
+  lv_table_set_cell_value(infusion_monitoring_table, 0, 1, "text");
+  lv_table_set_cell_value(infusion_monitoring_table, 1, 1, "text");
+  lv_table_set_cell_value(infusion_monitoring_table, 2, 1, "text");
+  lv_table_set_cell_value(infusion_monitoring_table, 3, 1, "text");
+  lv_table_set_cell_value(infusion_monitoring_table, 4, 1, "text");
 
 }
 
@@ -417,7 +432,7 @@ bool validate_keypad_inputs() {
         keypad_dropFactor);
 
     char buf[20];
-    sprintf(buf, "%d", keypad_targetDripRate);  // only keep integer part
+    sprintf(buf, "%d", keypad_targetDripRate);
     lv_obj_set_style_text_color(derivedDripRateValue_label, lv_color_hex(0x40ce00), LV_PART_MAIN);
     lv_label_set_text(derivedDripRateValue_label, buf);
 
@@ -442,4 +457,20 @@ int32_t calculate_drip_rate(int32_t volume, int32_t time, int32_t dropFactor) {
   int32_t denominator = time;
 
   return (numerator + denominator / 2) / denominator;
+}
+
+/**
+ * The callback used to update the infusion monitoring data
+ * @param timer The pointer to the calling LVGL timer 
+ */
+void infusion_monitoring_cb(lv_timer_t * timer) {
+  uint32_t * user_data = (uint32_t *) timer->user_data;
+
+  /*Update LVGL table cells*/
+  if (infusion_monitoring_table != NULL) {
+    char buf[20];
+    sprintf(buf, "%d", *user_data);
+    lv_table_set_cell_value(infusion_monitoring_table, 0, 1, buf);
+    (*user_data)++;
+  }
 }

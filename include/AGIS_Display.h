@@ -26,6 +26,8 @@ extern int32_t keypad_dropFactor;
 extern Keypad keypad;
 
 // For testing:
+extern uint32_t dummy;
+
 extern bool keypad_check;
 
 void display_init();
@@ -38,5 +40,6 @@ void monitor_screen();
 static void keypad_read(lv_indev_drv_t * drv, lv_indev_data_t * data);
 bool validate_keypad_inputs();
 int32_t calculate_drip_rate(int32_t volume, int32_t time, int32_t dropFactor);
+void infusion_monitoring_cb(lv_timer_t * timer);
 
 #endif /* ECFC85B5_FBAD_44F5_B4D7_5DC33680411F */

@@ -12,10 +12,10 @@ void setup(void) {
 
   /*Setup for timer3*/
   // NOTE: too frequent timer interrupt may cause display frozen issue
-  Timer3_cfg = timerBegin(3, 8000, true); // Prescaler = 40000
+  Timer3_cfg = timerBegin(3, 4000, true); // Prescaler = 40000
   timerAttachInterrupt(Timer3_cfg, &TFT_DisplayISR,
                        true);              // call the function TFT_DisplayISR()
-  timerAlarmWrite(Timer3_cfg, 1000, true); // Time = 8000*1000/80,000,000 = 100ms
+  timerAlarmWrite(Timer3_cfg, 1000, true); // Time = 4000*1000/80,000,000 = 50ms
   timerAlarmEnable(Timer3_cfg);            // start the interrupt
 
   /*Initialize TFT display, LVGL*/
