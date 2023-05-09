@@ -7,6 +7,19 @@
 #include <lv_conf.h>
 #include <AGIS_Keypad.h>
 
+/**
+ * Handler to the infusion monitoring data.
+ * Data elements are packed as a struct s.t. it can be called from the timer callback.
+ * Struct elements are pointers to actual data.
+ */
+typedef struct _infusion_monitoring_data_handle_t {
+  unsigned int * numDrops_p;
+  unsigned int * dripRate_p;
+  float * infusedVolume_p;
+  long * infusedTime_p;
+  // TODO: add infusionState
+} infusion_monitoring_data_handle_t;
+
 extern lv_disp_draw_buf_t draw_buf;
 extern lv_color_t color_buf[ TFT_WIDTH * TFT_HEIGHT / 5 ];
 
@@ -24,10 +37,6 @@ extern int32_t keypad_dropFactor;
 
 /*Keypad variables*/
 extern Keypad keypad;
-
-// For testing:
-extern uint32_t dummy;
-
 extern bool keypad_check;
 
 void display_init();

@@ -1,4 +1,5 @@
 #include <AGIS_Display.h>
+#include <main.h>
 
 #define LV_VTBI_ID             100
 #define LV_TOTAL_TIME_HOUR_ID  101
@@ -36,8 +37,8 @@ int32_t keypad_dropFactor = -1;
 bool keypad_check = false;
 
 /*Infusion monitoring variables*/
-uint32_t dummy = 0;
 lv_timer_t * infusion_monitoring_timer;
+infusion_monitoring_data_handle_t infusion_monitoring_data_handle;
 
 void display_init() {
   /*TFT display setup*/
@@ -74,7 +75,12 @@ void display_init() {
   lv_indev_set_group(keypad_indev, input_grp);
 
   /*Register LVGL timers*/
-  infusion_monitoring_timer = lv_timer_create(infusion_monitoring_cb, 500,  &dummy);  // call every 500ms
+  infusion_monitoring_data_handle.numDrops_p = &numDrops;
+  infusion_monitoring_data_handle.dripRate_p = &dripRate;
+  infusion_monitoring_data_handle.infusedVolume_p = &infusedVolume;
+  infusion_monitoring_data_handle.infusedTime_p = &infusedTime;
+  // Call every 500ms
+  infusion_monitoring_timer = lv_timer_create(infusion_monitoring_cb, 500, NULL);
 }
 
 /* Display flushing */
@@ -343,11 +349,11 @@ void monitor_screen() {
   lv_table_set_cell_value(infusion_monitoring_table, 4, 0, "Infusion state:");
 
   /*Fill the second column*/
-  lv_table_set_cell_value(infusion_monitoring_table, 0, 1, "text");
-  lv_table_set_cell_value(infusion_monitoring_table, 1, 1, "text");
-  lv_table_set_cell_value(infusion_monitoring_table, 2, 1, "text");
-  lv_table_set_cell_value(infusion_monitoring_table, 3, 1, "text");
-  lv_table_set_cell_value(infusion_monitoring_table, 4, 1, "text");
+  lv_table_set_cell_value(infusion_monitoring_table, 0, 1, "Not started");
+  lv_table_set_cell_value(infusion_monitoring_table, 1, 1, "Not started");
+  lv_table_set_cell_value(infusion_monitoring_table, 2, 1, "Not started");
+  lv_table_set_cell_value(infusion_monitoring_table, 3, 1, "Not started");
+  lv_table_set_cell_value(infusion_monitoring_table, 4, 1, "Not started");
 
 }
 
@@ -464,13 +470,25 @@ int32_t calculate_drip_rate(int32_t volume, int32_t time, int32_t dropFactor) {
  * @param timer The pointer to the calling LVGL timer 
  */
 void infusion_monitoring_cb(lv_timer_t * timer) {
-  uint32_t * user_data = (uint32_t *) timer->user_data;
 
-  /*Update LVGL table cells*/
   if (infusion_monitoring_table != NULL) {
-    char buf[20];
-    sprintf(buf, "%d", *user_data);
-    lv_table_set_cell_value(infusion_monitoring_table, 0, 1, buf);
-    (*user_data)++;
+    /*Update LVGL table cells*/
+    char numDrops_buf[20];
+    sprintf(numDrops_buf, "%d", *(infusion_monitoring_data_handle.numDrops_p));
+    lv_table_set_cell_value(infusion_monitoring_table, 0, 1, numDrops_buf);
+
+    char dripRate_buf[20];
+    sprintf(dripRate_buf, "%d", *(infusion_monitoring_data_handle.dripRate_p));
+    lv_table_set_cell_value(infusion_monitoring_table, 1, 1, dripRate_buf);
+
+    char infusedVolume_buf[20];
+    sprintf(infusedVolume_buf, "%.2f", *(infusion_monitoring_data_handle.infusedVolume_p));
+    lv_table_set_cell_value(infusion_monitoring_table, 2, 1, infusedVolume_buf);
+
+    char infusedTime_buf[20];
+    sprintf(infusedTime_buf, "%d", *(infusion_monitoring_data_handle.infusedTime_p));
+    lv_table_set_cell_value(infusion_monitoring_table, 3, 1, infusedTime_buf);
+
+    // TODO: update infusionState cell
   }
 }
